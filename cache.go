@@ -16,7 +16,7 @@ import (
 // Cache is a goroutine-safe K/V cache.
 type Cache struct {
 	sync.RWMutex
-	items             map[string]*Item
+	items             map[interface{}]*Item
 	defaultExpiration time.Duration
 }
 
@@ -40,7 +40,7 @@ func (item *Item) Expired() bool {
 // before calling DeleteExpired.
 func New(defaultExpiration, cleanInterval time.Duration) *Cache {
 	c := &Cache{
-		items:             map[string]*Item{},
+		items:             map[interface{}]*Item{},
 		defaultExpiration: defaultExpiration,
 	}
 	if cleanInterval > 0 {
@@ -56,7 +56,7 @@ func New(defaultExpiration, cleanInterval time.Duration) *Cache {
 
 // Get return an item or nil, and a bool indicating whether
 // the key was found.
-func (c *Cache) Get(key string) (interface{}, bool) {
+func (c *Cache) Get(key interface{}) (interface{}, bool) {
 	c.RLock()
 	item, ok := c.items[key]
 	if !ok || item.Expired() {
@@ -69,7 +69,7 @@ func (c *Cache) Get(key string) (interface{}, bool) {
 
 // Set add a new key or replace an exist key. If the dur is 0, we will
 // use the defaultExpiration.
-func (c *Cache) Set(key string, val interface{}, dur time.Duration) {
+func (c *Cache) Set(key interface{}, val interface{}, dur time.Duration) {
 	var t *time.Time
 	c.Lock()
 	if dur == 0 {
@@ -87,7 +87,7 @@ func (c *Cache) Set(key string, val interface{}, dur time.Duration) {
 }
 
 // Delete a key-value pair if the key is existed.
-func (c *Cache) Delete(key string) {
+func (c *Cache) Delete(key interface{}) {
 	c.Lock()
 	delete(c.items, key)
 	c.Unlock()
@@ -96,12 +96,12 @@ func (c *Cache) Delete(key string) {
 // Delete all cache.
 func (c *Cache) Flush() {
 	c.Lock()
-	c.items = map[string]*Item{}
+	c.items = map[interface{}]*Item{}
 	c.Unlock()
 }
 
 // Add a number to a key-value pair.
-func (c *Cache) Increment(key string, x int64) error {
+func (c *Cache) Increment(key interface{}, x int64) error {
 	c.Lock()
 	val, ok := c.items[key]
 	if !ok || val.Expired() {
@@ -140,7 +140,7 @@ func (c *Cache) Increment(key string, x int64) error {
 }
 
 // Sub a number to a key-value pair.
-func (c *Cache) Decrement(key string, x int64) error {
+func (c *Cache) Decrement(key interface{}, x int64) error {
 	c.Lock()
 	val, ok := c.items[key]
 	if !ok || val.Expired() {
@@ -201,12 +201,12 @@ func (c *Cache) DeleteExpired() {
 type LRUCache struct {
 	sync.RWMutex
 	maxEntries int
-	items      map[string]*list.Element
+	items      map[interface{}]*list.Element
 	cacheList  *list.List
 }
 
 type entry struct {
-	key   string
+	key   interface{}
 	value interface{}
 }
 
@@ -217,14 +217,14 @@ func NewLRU(size int) (*LRUCache, error) {
 	}
 	lru := &LRUCache{
 		maxEntries: size,
-		items:      make(map[string]*list.Element, size),
+		items:      make(map[interface{}]*list.Element, size),
 		cacheList:  list.New(),
 	}
 	return lru, nil
 }
 
 // Add a new key-value pair to the LRUCache.
-func (c *LRUCache) Add(key string, value interface{}) {
+func (c *LRUCache) Add(key interface{}, value interface{}) {
 	c.Lock()
 	defer c.Unlock()
 	if ent, hit := c.items[key]; hit {
@@ -246,7 +246,7 @@ func (c *LRUCache) Add(key string, value interface{}) {
 
 // Get a value from the LRUCache. And a bool indicating
 // whether found or not.
-func (c *LRUCache) Get(key string) (interface{}, bool) {
+func (c *LRUCache) Get(key interface{}) (interface{}, bool) {
 	c.RLock()
 	defer c.RUnlock()
 
@@ -259,7 +259,7 @@ func (c *LRUCache) Get(key string) (interface{}, bool) {
 
 // Remove a key-value pair in LRUCache. If the key is not existed,
 // nothing will happen.
-func (c *LRUCache) Remove(key string) {
+func (c *LRUCache) Remove(key interface{}) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -280,7 +280,7 @@ func (c *LRUCache) Len() int {
 func (c *LRUCache) Clear() {
 	c.Lock()
 	c.cacheList = list.New()
-	c.items = make(map[string]*list.Element, c.maxEntries)
+	c.items = make(map[interface{}]*list.Element, c.maxEntries)
 	c.Unlock()
 }
 
