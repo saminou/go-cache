@@ -12,6 +12,11 @@ import (
 	"time"
 )
 
+type EXPLRUCache interface {
+	Get(interface{}) (interface{}, bool)
+	DumpKeys() []interface{}
+}
+
 // Cache is a goroutine-safe K/V cache.
 type Cache struct {
 	items             map[interface{}]*Item
@@ -50,6 +55,15 @@ func New(defaultExpiration, cleanInterval time.Duration) *Cache {
 		}()
 	}
 	return c
+}
+
+func (c *Cache) DumpKeys() (keys []interface{}) {
+	for k, _ := range c.items {
+		if k != nil {
+			keys = append(keys, k)
+		}
+	}
+	return
 }
 
 // Get return an item or nil, and a bool indicating whether
@@ -197,6 +211,15 @@ func NewLRU(size int) (*LRUCache, error) {
 		cacheList:  list.New(),
 	}
 	return lru, nil
+}
+
+func (c *LRUCache) DumpKeys() (keys []interface{}) {
+	for k, _ := range c.items {
+		if k != nil {
+			keys = append(keys, k)
+		}
+	}
+	return
 }
 
 // Add a new key-value pair to the LRUCache.
